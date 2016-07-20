@@ -12,3 +12,7 @@ test:
     - atom -v
     - apm -v
     - apm test
+
+machine:
+  node:
+    version: 6
