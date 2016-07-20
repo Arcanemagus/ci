@@ -18,6 +18,7 @@ environment:
   - ATOM_CHANNEL: beta
 
 install:
+  # Install Node.js to run any configured linters
   - ps: Install-Product node 5
 
 build_script:
