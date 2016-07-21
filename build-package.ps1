@@ -193,7 +193,7 @@ function DeleteFolder
 {
     param($folder)
 
-    Remove-Item -Recurse -Confirm -ErrorAction Ignore "$folder"
+    Remove-Item "$folder" -Recurse -ErrorAction Ignore
 }
 
 function ExitWithCode
