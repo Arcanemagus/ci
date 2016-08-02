@@ -59,6 +59,11 @@ function InstallPackage() {
     if ($LASTEXITCODE -ne 0) {
         ExitWithCode -exitcode $LASTEXITCODE
     }
+    # Now use npm to install the devDependencies (for specs)
+    & npm install
+    if ($LASTEXITCODE -ne 0) {
+        ExitWithCode -exitcode $LASTEXITCODE
+    }
     InstallDependencies
 }
 

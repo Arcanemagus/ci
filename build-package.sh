@@ -103,6 +103,8 @@ echo "Using APM version:"
 echo "Downloading package dependencies..."
 "$APM_SCRIPT_PATH" clean
 "$APM_SCRIPT_PATH" install --production
+# Now use npm to install the devDependencies (for specs)
+npm install
 
 TEST_PACKAGES="${APM_TEST_PACKAGES:=none}"
 
