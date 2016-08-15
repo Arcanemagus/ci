@@ -1,59 +1,5 @@
 #!/bin/sh
 
-if [ -d ./lib -o -d ./spec ]; then
-  echo "Node.js version"
-  node --version
-  echo "NPM version"
-  npm --version
-
-  echo "Installing package dependencies using NPM..."
-  npm install
-fi
-
-if [ -f ./node_modules/.bin/coffeelint ]; then
-  if [ -d ./lib ]; then
-    echo "Linting package using coffeelint..."
-    ./node_modules/.bin/coffeelint lib
-    rc=$?; if [ $rc -ne 0 ]; then exit $rc; fi
-  fi
-  if [ -d ./spec ]; then
-    echo "Linting package specs using coffeelint..."
-    ./node_modules/.bin/coffeelint spec
-    rc=$?; if [ $rc -ne 0 ]; then exit $rc; fi
-  fi
-fi
-
-if [ -f ./node_modules/.bin/eslint ]; then
-  if [ -d ./lib ]; then
-    echo "Linting package using eslint..."
-    ./node_modules/.bin/eslint lib
-    rc=$?; if [ $rc -ne 0 ]; then exit $rc; fi
-  fi
-  if [ -d ./spec ]; then
-    echo "Linting package specs using eslint..."
-    ./node_modules/.bin/eslint spec
-    rc=$?; if [ $rc -ne 0 ]; then exit $rc; fi
-  fi
-fi
-
-if [ -f ./node_modules/.bin/standard ]; then
-  if [ -d ./lib ]; then
-    echo "Linting package using standard..."
-    ./node_modules/.bin/standard "lib/**/*.js"
-    rc=$?; if [ $rc -ne 0 ]; then exit $rc; fi
-  fi
-  if [ -d ./spec ]; then
-    echo "Linting package specs using standard..."
-    ./node_modules/.bin/standard "spec/**/*.js"
-    rc=$?; if [ $rc -ne 0 ]; then exit $rc; fi
-  fi
-fi
-
-if [ -d ./lib -o -d ./spec ]; then
-  echo "Removing NPM installed node_modules..."
-  rm -Rf ./node_modules
-fi
-
 echo "Downloading latest Atom release..."
 ATOM_CHANNEL="${ATOM_CHANNEL:=stable}"
 
@@ -102,9 +48,22 @@ echo "Using APM version:"
 
 echo "Downloading package dependencies..."
 "$APM_SCRIPT_PATH" clean
-"$APM_SCRIPT_PATH" install --production
-# Now use npm to install the devDependencies (for specs)
-npm install
+
+ATOM_LINT_WITH_BUNDLED_NODE="${ATOM_LINT_WITH_BUNDLED_NODE:=true}"
+if [ "${ATOM_LINT_WITH_BUNDLED_NODE}" = "true" ]; then
+  "$APM_SCRIPT_PATH" install
+  # Override the PATH to put the Node.js bundled with APM first
+  export PATH="$PWD/atom/${ATOM_APP_NAME}/Contents/Resources/app/apm/bin:$PATH"
+else
+  "$APM_SCRIPT_PATH" install --production
+  # Use the system NPM to install the devDependencies
+  echo "Using Node.js version:"
+  node --version
+  echo "Using NPM version:"
+  npm --version
+  echo "Installing remaining dependencies..."
+  npm install
+fi
 
 TEST_PACKAGES="${APM_TEST_PACKAGES:=none}"
 
@@ -113,6 +72,45 @@ if [ "$TEST_PACKAGES" != "none" ]; then
   for pack in $TEST_PACKAGES ; do
     "$APM_SCRIPT_PATH" install "$pack"
   done
+fi
+
+if [ -f ./node_modules/.bin/coffeelint ]; then
+  if [ -d ./lib ]; then
+    echo "Linting package using coffeelint..."
+    ./node_modules/.bin/coffeelint lib
+    rc=$?; if [ $rc -ne 0 ]; then exit $rc; fi
+  fi
+  if [ -d ./spec ]; then
+    echo "Linting package specs using coffeelint..."
+    ./node_modules/.bin/coffeelint spec
+    rc=$?; if [ $rc -ne 0 ]; then exit $rc; fi
+  fi
+fi
+
+if [ -f ./node_modules/.bin/eslint ]; then
+  if [ -d ./lib ]; then
+    echo "Linting package using eslint..."
+    ./node_modules/.bin/eslint lib
+    rc=$?; if [ $rc -ne 0 ]; then exit $rc; fi
+  fi
+  if [ -d ./spec ]; then
+    echo "Linting package specs using eslint..."
+    ./node_modules/.bin/eslint spec
+    rc=$?; if [ $rc -ne 0 ]; then exit $rc; fi
+  fi
+fi
+
+if [ -f ./node_modules/.bin/standard ]; then
+  if [ -d ./lib ]; then
+    echo "Linting package using standard..."
+    ./node_modules/.bin/standard "lib/**/*.js"
+    rc=$?; if [ $rc -ne 0 ]; then exit $rc; fi
+  fi
+  if [ -d ./spec ]; then
+    echo "Linting package specs using standard..."
+    ./node_modules/.bin/standard "spec/**/*.js"
+    rc=$?; if [ $rc -ne 0 ]; then exit $rc; fi
+  fi
 fi
 
 if [ -d ./spec ]; then
