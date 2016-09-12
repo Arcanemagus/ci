@@ -13,9 +13,11 @@ if ($env:ATOM_CHANNEL -and ($env:ATOM_CHANNEL.tolower() -ne "stable")) {
 $script:ATOM_EXE_PATH = "$script:PACKAGE_FOLDER\$script:ATOM_DIRECTORY_NAME\atom.exe"
 $script:ATOM_SCRIPT_PATH = "$script:PACKAGE_FOLDER\$script:ATOM_DIRECTORY_NAME\resources\cli\atom.cmd"
 $script:APM_SCRIPT_PATH = "$script:PACKAGE_FOLDER\$script:ATOM_DIRECTORY_NAME\resources\app\apm\bin\apm.cmd"
+$script:NPM_SCRIPT_PATH = "$script:PACKAGE_FOLDER\$script:ATOM_DIRECTORY_NAME\resources\app\apm\node_modules\.bin\npm.cmd"
 
 if ($env:ATOM_LINT_WITH_BUNDLED_NODE -eq "false") {
   $script:ATOM_LINT_WITH_BUNDLED_NODE = false
+  $script:NPM_SCRIPT_PATH = "npm"
 } else {
   $script:ATOM_LINT_WITH_BUNDLED_NODE = true
 }
@@ -109,7 +111,6 @@ function InstallDependencies() {
     }
 }
 
-
 function NpmInstallDependencies
 {
     Write-Host "Installing atom package dependencies using NPM..."
@@ -117,6 +118,17 @@ function NpmInstallDependencies
     if ($LASTEXITCODE -ne 0) {
         ExitWithCode -exitcode $LASTEXITCODE
     }
+}
+
+function HasLinter([String] $LinterName) {
+    $output = &"$script:NPM_SCRIPT_PATH" ls --parseable --dev --depth=0 $LinterName 2>$null
+    if ($LastExitCode -eq 0) {
+        if ($output.Trim() -ne "") {
+            return $true
+        }
+    }
+
+    return $false
 }
 
 function RunLinters() {
@@ -127,31 +139,31 @@ function RunLinters() {
     $specpath = "$script:PACKAGE_FOLDER\spec"
     $specpathexists = Test-Path $specpath
     $coffeelintpath = "$script:PACKAGE_FOLDER\node_modules\.bin\coffeelint.cmd"
-    $coffeelintpathexists = Test-Path $coffeelintpath
+    $lintwithcoffeelint = HasLinter -LinterName "coffeelint"
     $eslintpath = "$script:PACKAGE_FOLDER\node_modules\.bin\eslint.cmd"
-    $eslintpathexists = Test-Path $eslintpath
+    $lintwitheslint = HasLinter -LinterName "eslint"
     $standardpath = "$script:PACKAGE_FOLDER\node_modules\.bin\standard.cmd"
-    $standardpathexists = Test-Path $standardpath
-    if (($libpathexists -or $srcpathexists) -and ($coffeelintpathexists -or $eslintpathexists -or $standardpathexists)) {
+    $lintwithstandard = HasLinter -LinterName "standard"
+    if (($libpathexists -or $srcpathexists) -and ($lintwithcoffeelint -or $lintwitheslint -or $lintwithstandard)) {
         Write-Host "Linting package..."
     }
 
     if ($libpathexists) {
-        if ($coffeelintpathexists) {
+        if ($lintwithcoffeelint) {
             & "$coffeelintpath" lib
             if ($LASTEXITCODE -ne 0) {
                 ExitWithCode -exitcode $LASTEXITCODE
             }
         }
 
-        if ($eslintpathexists) {
+        if ($lintwitheslint) {
             & "$eslintpath" lib
             if ($LASTEXITCODE -ne 0) {
                 ExitWithCode -exitcode $LASTEXITCODE
             }
         }
 
-        if ($standardpathexists) {
+        if ($lintwithstandard) {
             & "$standardpath" lib/**/*.js
             if ($LASTEXITCODE -ne 0) {
                 ExitWithCode -exitcode $LASTEXITCODE
@@ -160,21 +172,21 @@ function RunLinters() {
     }
 
     if ($srcpathexists) {
-        if ($coffeelintpathexists) {
+        if ($lintwithcoffeelint) {
             & "$coffeelintpath" src
             if ($LASTEXITCODE -ne 0) {
                 ExitWithCode -exitcode $LASTEXITCODE
             }
         }
 
-        if ($eslintpathexists) {
+        if ($lintwitheslint) {
             & "$eslintpath" src
             if ($LASTEXITCODE -ne 0) {
                 ExitWithCode -exitcode $LASTEXITCODE
             }
         }
 
-        if ($standardpathexists) {
+        if ($lintwithstandard) {
             & "$standardpath" src/**/*.js
             if ($LASTEXITCODE -ne 0) {
                 ExitWithCode -exitcode $LASTEXITCODE
@@ -182,23 +194,23 @@ function RunLinters() {
         }
     }
 
-    if ($specpathexists -and ($coffeelintpathexists -or $eslintpathexists -or $standardpathexists)) {
+    if ($specpathexists -and ($lintwithcoffeelint -or $lintwitheslint -or $lintwithstandard)) {
         Write-Host "Linting package specs..."
-        if ($coffeelintpathexists) {
+        if ($lintwithcoffeelint) {
             & "$coffeelintpath" spec
             if ($LASTEXITCODE -ne 0) {
                 ExitWithCode -exitcode $LASTEXITCODE
             }
         }
 
-        if ($eslintpathexists) {
+        if ($lintwitheslint) {
             & "$eslintpath" spec
             if ($LASTEXITCODE -ne 0) {
                 ExitWithCode -exitcode $LASTEXITCODE
             }
         }
 
-        if ($standardpathexists) {
+        if ($lintwithstandard) {
             & "$standardpath" spec/**/*.js
             if ($LASTEXITCODE -ne 0) {
                 ExitWithCode -exitcode $LASTEXITCODE
