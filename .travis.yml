@@ -1,26 +1,20 @@
 ### Project specific config ###
-
-# Installed for linting the project
-language: node_js
+language: generic
 
 matrix:
   include:
     - os: linux
-      node_js: "6"
       env: ATOM_CHANNEL=stable
 
     - os: linux
-      node_js: "6"
       env: ATOM_CHANNEL=beta
 
     - os: osx
-      node_js: "6"
       env: ATOM_CHANNEL=stable
-
 env:
   global:
     - APM_TEST_PACKAGES=""
-    - ATOM_LINT_WITH_BUNDLED_NODE="false"
+    - ATOM_LINT_WITH_BUNDLED_NODE="true"
 
 ### Generic setup follows ###
 script: 'curl -s https://raw.githubusercontent.com/atom/ci/master/build-package.sh | sh'
