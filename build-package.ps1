@@ -33,7 +33,7 @@ function DownloadAtom() {
 }
 
 function ExtractAtom() {
-    DeleteFolder "$script:PACKAGE_FOLDER\$script:ATOM_DIRECTORY_NAME"
+    Remove-Item "$script:PACKAGE_FOLDER\$script:ATOM_DIRECTORY_NAME" -Recurse -ErrorAction Ignore
     Unzip "$script:PACKAGE_FOLDER\atom.zip" "$script:PACKAGE_FOLDER"
 }
 
@@ -60,10 +60,8 @@ function PrintVersions() {
 }
 
 function InstallPackage() {
-    Write-Host "Removing current node_modules"
-    DeleteFolder "node_modules"
     Write-Host "Downloading package dependencies..."
-    & "$script:APM_SCRIPT_PATH" install --production
+    & "$script:APM_SCRIPT_PATH" clean
     if ($LASTEXITCODE -ne 0) {
         ExitWithCode -exitcode $LASTEXITCODE
     }
@@ -109,15 +107,6 @@ function InstallDependencies() {
                 ExitWithCode -exitcode $LASTEXITCODE
             }
         }
-    }
-}
-
-function NpmInstallDependencies
-{
-    Write-Host "Installing atom package dependencies using NPM..."
-    & npm install
-    if ($LASTEXITCODE -ne 0) {
-        ExitWithCode -exitcode $LASTEXITCODE
     }
 }
 
@@ -242,16 +231,12 @@ function RunSpecs() {
     }
 }
 
-function DeleteFolder
-{
-    param($folder)
-
-    Remove-Item "$folder" -Recurse -ErrorAction Ignore
-}
-
 function ExitWithCode
 {
-    param($exitcode)
+    param
+    (
+        $exitcode
+    )
 
     $host.SetShouldExit($exitcode)
     exit
@@ -265,11 +250,10 @@ function SetElectronEnvironmentVariables
   [Environment]::SetEnvironmentVariable("ELECTRON_ENABLE_LOGGING", "YES", "User")
 }
 
-NpmInstallDependencies
-RunLinters
 DownloadAtom
 ExtractAtom
 SetElectronEnvironmentVariables
 PrintVersions
 InstallPackage
+RunLinters
 RunSpecs
