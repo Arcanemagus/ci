@@ -16,6 +16,8 @@ env:
     - APM_TEST_PACKAGES=""
     - ATOM_LINT_WITH_BUNDLED_NODE="true"
 
+dist: trusty
+
 ### Generic setup follows ###
 script:
   - curl -s -O https://raw.githubusercontent.com/atom/ci/master/build-package.sh
@@ -38,8 +40,10 @@ sudo: false
 
 addons:
   apt:
+    sources:
+    - ubuntu-toolchain-r-test
     packages:
-    - build-essential
-    - git
-    - libgnome-keyring-dev
+    - g++-6
     - fakeroot
+    - git
+    - libsecret-1-dev
