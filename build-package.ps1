@@ -1,10 +1,15 @@
 Set-StrictMode -Version Latest
 $script:PACKAGE_FOLDER = "$env:APPVEYOR_BUILD_FOLDER"
 Set-Location $script:PACKAGE_FOLDER
-$script:ATOM_CHANNEL = "stable"
+
+if ($env:ATOM_CHANNEL) {
+  $script:ATOM_CHANNEL = "$env:ATOM_CHANNEL"
+} else {
+  $script:ATOM_CHANNEL = "stable"
+}
+
 $script:ATOM_DIRECTORY_NAME = "Atom"
-if ($env:ATOM_CHANNEL -and ($env:ATOM_CHANNEL.tolower() -ne "stable")) {
-    $script:ATOM_CHANNEL = "$env:ATOM_CHANNEL"
+if (($script:ATOM_CHANNEL.tolower() -ne "stable") -and ($script:ATOM_CHANNEL.tolower() -ne "dev")) {
     $script:ATOM_DIRECTORY_NAME = "$script:ATOM_DIRECTORY_NAME "
     $script:ATOM_DIRECTORY_NAME += $script:ATOM_CHANNEL.substring(0,1).toupper()
     $script:ATOM_DIRECTORY_NAME += $script:ATOM_CHANNEL.substring(1).tolower()
@@ -128,6 +133,8 @@ function RunLinters() {
     $srcpathexists = Test-Path $srcpath
     $specpath = "$script:PACKAGE_FOLDER\spec"
     $specpathexists = Test-Path $specpath
+    $testpath = "$script:PACKAGE_FOLDER\test"
+    $testpathexists = Test-Path $testpath
     $coffeelintpath = "$script:PACKAGE_FOLDER\node_modules\.bin\coffeelint.cmd"
     $lintwithcoffeelint = HasLinter -LinterName "coffeelint"
     $eslintpath = "$script:PACKAGE_FOLDER\node_modules\.bin\eslint.cmd"
@@ -202,6 +209,30 @@ function RunLinters() {
 
         if ($lintwithstandard) {
             & "$standardpath" spec/**/*.js
+            if ($LASTEXITCODE -ne 0) {
+                ExitWithCode -exitcode $LASTEXITCODE
+            }
+        }
+    }
+
+    if ($testpathexists -and ($lintwithcoffeelint -or $lintwitheslint -or $lintwithstandard)) {
+        Write-Host "Linting package tests..."
+        if ($lintwithcoffeelint) {
+            & "$coffeelintpath" test
+            if ($LASTEXITCODE -ne 0) {
+                ExitWithCode -exitcode $LASTEXITCODE
+            }
+        }
+
+        if ($lintwitheslint) {
+            & "$eslintpath" test
+            if ($LASTEXITCODE -ne 0) {
+                ExitWithCode -exitcode $LASTEXITCODE
+            }
+        }
+
+        if ($lintwithstandard) {
+            & "$standardpath" test/**/*.js
             if ($LASTEXITCODE -ne 0) {
                 ExitWithCode -exitcode $LASTEXITCODE
             }

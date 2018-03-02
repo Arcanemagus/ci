@@ -9,7 +9,7 @@ if [ "${TRAVIS_OS_NAME}" = "osx" ]; then
     -o "atom.zip"
   mkdir atom
   unzip -q atom.zip -d atom
-  if [ "${ATOM_CHANNEL}" = "stable" ]; then
+  if [ "${ATOM_CHANNEL}" = "stable" ] || [ "${ATOM_CHANNEL}" = "dev" ]; then
     export ATOM_APP_NAME="Atom.app"
     export ATOM_SCRIPT_NAME="atom.sh"
     export ATOM_SCRIPT_PATH="./atom/${ATOM_APP_NAME}/Contents/Resources/app/atom.sh"
@@ -30,7 +30,7 @@ elif [ "${TRAVIS_OS_NAME}" = "linux" ]; then
   /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -ac -screen 0 1280x1024x16
   export DISPLAY=":99"
   dpkg-deb -x atom-amd64.deb "${HOME}/atom"
-  if [ "${ATOM_CHANNEL}" = "stable" ]; then
+  if [ "${ATOM_CHANNEL}" = "stable" ] || [ "${ATOM_CHANNEL}" = "dev" ]; then
     export ATOM_SCRIPT_NAME="atom"
     export APM_SCRIPT_NAME="apm"
   else
@@ -49,8 +49,13 @@ elif [ "${CIRCLECI}" = "true" ]; then
       sudo dpkg --install atom-amd64.deb || true
       sudo apt-get update
       sudo apt-get --fix-broken --assume-yes --quiet install
-      export ATOM_SCRIPT_PATH="atom"
-      export APM_SCRIPT_PATH="apm"
+      if [ "${ATOM_CHANNEL}" = "stable" ] || [ "${ATOM_CHANNEL}" = "dev" ]; then
+        export ATOM_SCRIPT_PATH="atom"
+        export APM_SCRIPT_PATH="apm"
+      else
+        export ATOM_SCRIPT_PATH="atom-${ATOM_CHANNEL}"
+        export APM_SCRIPT_PATH="apm-${ATOM_CHANNEL}"
+      fi
       export NPM_SCRIPT_PATH="/usr/share/atom/resources/app/apm/node_modules/.bin/npm"
       ;;
     osx)
@@ -59,7 +64,7 @@ elif [ "${CIRCLECI}" = "true" ]; then
         -o "atom.zip"
       mkdir -p /tmp/atom
       unzip -q atom.zip -d /tmp/atom
-      if [ "${ATOM_CHANNEL}" = "stable" ]; then
+      if [ "${ATOM_CHANNEL}" = "stable" ] || [ "${ATOM_CHANNEL}" = "dev" ]; then
         export ATOM_APP_NAME="Atom.app"
         export ATOM_SCRIPT_NAME="atom.sh"
         export ATOM_SCRIPT_PATH="/tmp/atom/${ATOM_APP_NAME}/Contents/Resources/app/atom.sh"
@@ -169,6 +174,11 @@ if has_linter "standard"; then
   if [ -d ./spec ]; then
     echo "Linting package specs using standard..."
     ./node_modules/.bin/standard "spec/**/*.js"
+    rc=$?; if [ $rc -ne 0 ]; then exit $rc; fi
+  fi
+  if [ -d ./test ]; then
+    echo "Linting package tests using standard..."
+    ./node_modules/.bin/standard "test/**/*.js"
     rc=$?; if [ $rc -ne 0 ]; then exit $rc; fi
   fi
 fi
